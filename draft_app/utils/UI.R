@@ -121,6 +121,12 @@ group_to_map = shiny::radioButtons(
 #   selected = '1'
 # )
 
+data_recency_bit = div(
+  # top = '91vh', left = '105vh',
+  p('NPI dataset coverage: 2005-05-23 to 2023-08-13'),
+  style = 'font-size:small; left: 72%; top: 1%; width:25%; position:absolute;'
+)
+
 the_sidebar = sidebar(
   title = h4(str_to_title('Healthcare Provider Comparison Tool'), style = 'text-align:center;margin-bottom:5px;margin-top:-0.5rem'),
   width = '30%',
@@ -142,14 +148,16 @@ the_sidebar = sidebar(
   # leaflet_colour_palette_chooser
 )
 
-main_bit = tagList(
+main_bit = div(
+  data_recency_bit,
   card(
     card_body(
       leafletOutput('leafmap', height = 500),
-      summary_widgets#,
+      summary_widgets
+      #,
       # report_buttons
     )
-  )#,
+  )
   # DT::DTOutput('dat_table')
 )
 

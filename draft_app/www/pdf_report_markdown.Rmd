@@ -146,7 +146,7 @@ summary_number_two_state_w_text = paste0(" and ",summary_number_two_state_w_text
 # Group 1, county
 summary_number_one_county_w_text = case_when(
   var_to_map == 'n' ~ as.character(summary_number_one_county),
-  var_to_map == 'people_per_provider' ~ paste0(summary_number_one_county,' people per provider for '),
+  var_to_map == 'people_per_provider' ~ paste0(round(summary_number_one_county,1),' people per provider for '),
   var_to_map == 'providers_per_pop_density_sq_mile' ~ paste0('~',summary_number_one_county,' providers by population density for '),
   var_to_map == 'prop_in_bcbs' ~ paste0(100*mean_g_one_county,'% in network for ')
 )
@@ -157,12 +157,12 @@ summary_number_one_county_w_text = paste0("There were ",summary_number_one_count
 
 summary_number_two_county_w_text = case_when(
   var_to_map == 'n' ~ as.character(summary_number_two_county),
-  var_to_map == 'people_per_provider' ~ paste0(summary_number_two_county,' people per provider for '),
+  var_to_map == 'people_per_provider' ~ paste0(round(summary_number_two_county,1),' people per provider for '),
   var_to_map == 'providers_per_pop_density_sq_mile' ~ paste0('~',summary_number_two_county,' providers by population density for '),
   var_to_map == 'prop_in_bcbs' ~ paste0(100*mean_g_two_county,'% in network for ')
 )
 
-summary_number_two_county_w_text = paste0("There were ",summary_number_two_county_w_text," Medical/Surgical (Med/Surg) providers in ",ifelse(the_county == 'Contiguous USA', 'the Continental USA', the_county))
+summary_number_two_county_w_text = paste0(" and ",summary_number_two_county_w_text," Mental Health and Substance Use Disorder (MH/SUD) providers in ",ifelse(the_county == 'Contiguous USA', 'the Continental USA', the_county))
 ```
 
 ## Findings
