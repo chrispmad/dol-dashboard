@@ -1,0 +1,296 @@
+---
+title: "Healthcare Provider Comparison Tool Report"
+author: ""
+date: "`r paste0('Generated ', Sys.Date())`"
+output: 
+  pdf_document:
+    latex_engine: pdflatex
+    df_print: kable
+params:
+    state_selected: NULL
+    county_selected: NULL
+    group_one_bundle: NULL
+    group_one_items: NULL
+    group_two_items: NULL
+    group_to_map: NULL
+    var_to_map: NULL
+    entity_types_included: NULL
+    mean_provs_in_network_group_one_state: NULL
+    mean_provs_in_network_group_one_county: NULL
+    mean_provs_in_network_group_two_state: NULL
+    mean_provs_in_network_group_two_county: NULL
+    mean_provs_in_network_ratio_state: NULL
+    mean_provs_in_network_ratio_county: NULL
+    Map: NULL
+header-includes:
+  \usepackage{fancyhdr}
+  \usepackage{helvet}
+  \fancyhf{}
+  \fancypagestyle{plain}{\pagestyle{fancy}}
+  \pagestyle{fancy}
+  \renewcommand{\familydefault}{\sfdefault}
+  \fancyhead[R]{\thepage}
+  \fancyfoot[C]{The Healthcare Provider Comparison Tool was created by Charm Economics, LLC in 2023.}
+---
+
+
+```{r include = F}
+knitr::opts_chunk$set(echo = F, error = F, message = F)
+library(kableExtra)
+```
+
+```{r renaming_params_to_shorter_names, include = F}
+the_state = params$state_selected
+the_county = params$county_selected
+# the_loc = 'the United States'
+#group_one_bundle = 'All Medical/Surgical'
+group_one_items = stringr::str_replace_all(params$group_one_items,"<br>", "")
+group_two_items = stringr::str_replace_all(params$group_two_items, "<br>", "")
+group_to_map = params$group_to_map
+var_to_map = params$var_to_map
+# ent_types = params$entity_types_included
+mean_g_one_state = as.numeric(params$mean_provs_in_network_group_one_state)
+mean_g_one_county = as.numeric(params$mean_provs_in_network_group_one_county)
+mean_g_two_state = as.numeric(params$mean_provs_in_network_group_two_state)
+mean_g_two_county = as.numeric(params$mean_provs_in_network_group_two_county)
+ratio_result_state = as.numeric(params$mean_provs_in_network_ratio_state)
+ratio_result_county = as.numeric(params$mean_provs_in_network_ratio_county)
+HHI = 'TBD'
+leaflet_map = params$Map
+
+```
+
+```{r formatting_titles, include=F}
+map_title = case_when(
+  var_to_map == 'n' ~ 'Ratio of Number of Total Providers',
+  var_to_map == 'people_per_provider' ~ 'Ratio of People per Provider',
+  var_to_map == 'providers_per_pop_density_sq_mile' ~ 'Ratio of Providers / Population Density',
+  var_to_map ==  'prop_in_bcbs' ~ 'Ratio of Percent of Providers in BCBS'
+)
+
+ratio_finding_levels = c('close to equal','moderately similar','moderately unequal','highly unequal')
+
+ratio_finding = case_when(
+  ratio_result_state <= 1.1 ~ ratio_finding_levels[1],
+  ratio_result_state > 1.1 & ratio_result_state <= 2 ~ ratio_finding_levels[2],
+  ratio_result_state > 2 & ratio_result_state <= 3 ~  ratio_finding_levels[3],
+  ratio_result_state > 3 ~  ratio_finding_levels[4]
+)
+
+# ent_type_labels = case_when(
+#   length(c(ent_types)) == 1 & ent_types == '1' ~ "Individual Providers (Individual NPIs only)",
+#   length(c(ent_types)) == 1 & ent_types == '2' ~ "Organizational Providers (Organzation NPIs only)",
+#   length(c(ent_types)) == 2 ~ 'Individual and Organizational Providers'
+# )[1]
+
+# ent_types[ent_types == "1"] <- “Individual Providers (Individual NPIs only)”
+# ent_types[ent_types == "2"] <- “Provider Groups (Organizational NPIs only)”
+
+```
+
+```{r create_group_summaries, include= F}
+  # Round numbers a bit for text. Maybe unnecessary.
+  # digits_one_state = nchar(mean_g_one_state) - 3
+  # digits_two_state = nchar(mean_g_two_state) - 3
+  # 
+  # den_one_state = 10^(digits_one_state)
+  # den_two_state = 10^(digits_two_state)
+#   
+# if(var_to_map != 'prop_in_bcbs'){
+#   summary_number_one_state = round(mean_g_one_state/den_one_state,3)*den_one_state
+#   summary_number_two_state = round(mean_g_two_state/den_two_state,3)*den_two_state
+# } else {
+  summary_number_one_state = mean_g_one_state
+  summary_number_two_state = mean_g_two_state
+# }
+
+# Group 1, State
+summary_number_one_state_w_text = case_when(
+  var_to_map == 'n' ~ as.character(summary_number_one_state),
+  var_to_map == 'people_per_provider' ~ paste0(round(summary_number_one_state,1),' people per provider for '),
+  var_to_map == 'providers_per_pop_density_sq_mile' ~ paste0('~',summary_number_one_state,' providers by population density for '),
+  var_to_map == 'prop_in_bcbs' ~ paste0(100*mean_g_one_state,'% in network for ')
+)
+
+summary_number_one_state_w_text = paste0("There were ",summary_number_one_state_w_text," Medical/Surgical (Med/Surg) providers in ",ifelse(the_state == 'Contiguous USA', 'the Continental USA', the_state))
+
+# Group 2, State
+
+summary_number_two_state_w_text = case_when(
+  var_to_map == 'n' ~ as.character(summary_number_two_state),
+  var_to_map == 'people_per_provider' ~ paste0(round(summary_number_two_state,1),' people per provider for '),
+  var_to_map == 'providers_per_pop_density_sq_mile' ~ paste0('~',summary_number_two_state,' providers by population density for '),
+  var_to_map == 'prop_in_bcbs' ~ paste0(100*mean_g_two_state,'% in network for ')
+)
+
+summary_number_two_state_w_text = paste0(" and ",summary_number_two_state_w_text," Mental Health and Substance Use Disorder (MH/SUD) providers in ",ifelse(the_state == 'Contiguous USA', 'the Continental USA', the_state))
+
+# Counties
+
+# # Round numbers a bit for text. Maybe unnecessary.
+# digits_one_county = nchar(mean_g_one_county) - 1
+# digits_two_county = nchar(mean_g_two_county) - 1
+# 
+# den_one_county = 10^(digits_one_county)
+# den_two_county = 10^(digits_two_county)
+
+# if(var_to_map != 'prop_in_bcbs'){
+#   summary_number_one_county = round(mean_g_one_county/den_one_county,1)*den_one_county
+#   summary_number_two_county = round(mean_g_two_county/den_two_county,1)*den_two_county
+# } else {
+  summary_number_one_county = mean_g_one_county
+  summary_number_two_county = mean_g_two_county
+# }
+
+
+# Group 1, county
+summary_number_one_county_w_text = case_when(
+  var_to_map == 'n' ~ as.character(summary_number_one_county),
+  var_to_map == 'people_per_provider' ~ paste0(summary_number_one_county,' people per provider for '),
+  var_to_map == 'providers_per_pop_density_sq_mile' ~ paste0('~',summary_number_one_county,' providers by population density for '),
+  var_to_map == 'prop_in_bcbs' ~ paste0(100*mean_g_one_county,'% in network for ')
+)
+
+summary_number_one_county_w_text = paste0("There were ",summary_number_one_county_w_text," Medical/Surgical (Med/Surg) providers in ",ifelse(the_county == 'Contiguous USA', 'the Continental USA', the_county))
+
+# Group 2, county
+
+summary_number_two_county_w_text = case_when(
+  var_to_map == 'n' ~ as.character(summary_number_two_county),
+  var_to_map == 'people_per_provider' ~ paste0(summary_number_two_county,' people per provider for '),
+  var_to_map == 'providers_per_pop_density_sq_mile' ~ paste0('~',summary_number_two_county,' providers by population density for '),
+  var_to_map == 'prop_in_bcbs' ~ paste0(100*mean_g_two_county,'% in network for ')
+)
+
+summary_number_two_county_w_text = paste0("There were ",summary_number_two_county_w_text," Medical/Surgical (Med/Surg) providers in ",ifelse(the_county == 'Contiguous USA', 'the Continental USA', the_county))
+```
+
+## Findings
+
+
+- `r summary_number_one_state_w_text` `r summary_number_two_state_w_text`.
+```{r add_in_county_summary_if_applicable, results = 'asis'}
+if(the_county != 'All'){
+  cat(paste0("- ",summary_number_one_county_w_text," ",summary_number_two_county_w_text,"."))
+}
+```
+- The ratio of in-network Med/Surg providers to in-network MH/SUD providers at the `r ifelse(the_state != 'Contiguous USA', 'state', 'national')` level is `r round(ratio_result_state,2)`, which indicates that the proportion of providers in the two groups is `r ratio_finding`.
+
+```{r summary_stats}
+if(var_to_map != 'prop_in_bcbs'){
+sum_stats = data.frame(
+  Summary = c('Med/Surg Providers in Network',
+              'MH/SUD Providers in Network',
+              'Ratio of Med/Surg to MH/SUD in Network'),
+  Value = c(
+    as.character(round(summary_number_one_state,1)),
+    as.character(round(summary_number_two_state,1)),
+    as.character(ratio_result_state))
+)
+} else {
+  sum_stats = data.frame(
+  Summary = c('Med/Surg Providers in Network',
+              'MH/SUD Providers in Network',
+              'Ratio of Med/Surg to MH/SUD in Network'),
+  Value = c(
+    paste0(as.character(100*mean_g_one_county),'%'),
+    paste0(as.character(100*mean_g_two_county),'%'),
+    as.character(ratio_result_state))
+)
+}
+
+if(the_state != 'Contiguous USA'){
+  sum_stats = sum_stats |> 
+    dplyr::rename(`State Summary` = Summary)
+} else {
+  sum_stats = sum_stats |> 
+    dplyr::rename(`National Summary` = Summary)
+}
+
+knitr::kable(sum_stats,'pipe')
+```
+\begingroup
+\fontfamily{phv}\fontsize{8}{10}\selectfont
+*Note: For this ratio, a value of 1.5 or below was considered `r ratio_finding_levels[1]`, 1.5 - 2 was considered `r ratio_finding_levels[2]`, 2 - 2.5 was considered `r ratio_finding_levels[3]`, and anything greater than 2.5 was considered `r ratio_finding_levels[4]`.*
+\endgroup
+
+
+### `r map_title` in `r the_state`
+```{r map, fig.align='center', out.width="80%"}
+magick::image_read(params$Map) |>
+  magick::image_resize('800x800')
+
+# knitr::include_graphics(params$Map)
+# library(leaflet)
+# library(sf)
+# 
+# m = leaflet() |> 
+#   addProviderTiles("CartoDB", 
+#                    provider = providers$CartoDB) |> 
+#   leaflet::setView(zoom = params$set_view$zoom,
+#                    lat = params$set_view$lat,
+#                    lng = params$set_view$lng) |> 
+#   addPolygons(
+#     label = ~state_name,
+#     col = 'black',
+#     weight = 2,
+#     data = params$state_boundaries
+#   ) |> 
+#   addScaleBar('bottomright') |>
+#   addPolygons(
+#     group = 'mapped_polys',
+#     color = 'black',
+#     weight = 1,
+#     fillColor = ~params$my_pal(var_chosen),
+#     fillOpacity = 0.6,
+#     opacity = 0.2,
+#     label = ~ params$variable_label_ratio,
+#     data = params$hsa_ratio
+#   ) |>
+#     addLegend(
+#       pal = params$my_pal_legend,
+#       title = params$legend_label,
+#       na.label = '',
+#       values = c(params$min_ratio,
+#                  params$max_ratio)
+#     )
+# # Remove the zoom in/out buttons.
+# m$x$options = append(m$x$options, list("zoomControl" = FALSE))
+# 
+# m
+```
+
+\begingroup
+\fontfamily{phv}\fontsize{8}{10}\selectfont
+*Note: Geographic units displayed in map are counties and states*
+\endgroup
+
+## Input Parameters
+
+```{r inputs}
+# Location Selected: `r the_loc`.
+# Med/Surg Provider Types: `r group_one_items`.
+# MH/SUD Provider Types: `r group_two_items`.
+# Entity Types Included: `r ent_types`.
+
+parameter_table = tibble(
+    Input = c('State Selected',
+              'Med/Surg Provider Types',
+              'MH/SUD Provider Types'#,
+              # 'Entity Types Included'),
+    ),
+    Value = c(the_state,
+              paste0(group_one_items,collapse = ', '),
+              paste0(group_two_items,collapse = ', ')#,
+              # paste0(ent_type_labels,collapse = ", ")
+    )
+)
+
+knitr::kable(parameter_table,'latex') |> 
+  column_spec(1, width = "10em") |> 
+  column_spec(2, width = "32em")
+```
+
+## Data Sources
+
+Provider data was collected from the CMS National Plan and Provider Enumeration System (NPPES), which provides basic information about all organization and individual providers with a National Provider Identifier (NPI). This data was cross-referenced with a list of providers within the Blue Cross Blue Shield network provided by BCBS Minnesota. Providers are categorized according to the National Uniform Claim Committee (NUCC) Taxonomy classifications.  

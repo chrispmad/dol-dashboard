@@ -1,0 +1,14 @@
+output/
+data/
+dol-dashboard.Rproj
+.Rproj.user
+.Rhistory
+draft_app/rsconnect
+draft_app/www/*.gpkg
+draft_app/www/*.csv
+draft_app/www_for_national/**
+draft_app/www/population_density.xlsx
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto
