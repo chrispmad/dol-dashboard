@@ -123,12 +123,24 @@ server <- function(input, output, session) {
   })
 
   # Once a county is selected, snag the NPI records with zip codes in that county.
+  # We use this reactive to inform the dots on the map, indicating
+  # the number of providers (of chosen group 1 or 2) at a given zip code.
   providers_in_county = reactive({
     req(input$county_chosen != 'All')
+    req(input$group_to_map != 'ratio')
 
-    selected_county_label(input$county_chosen)
+    # selected_county_label(input$county_chosen)
     
-    npidata_zip |> 
+    if(input$group_to_map == 'group1'){
+      dat_interim = npidata_zip |> 
+        dplyr::filter(Grouping == 'Allopathic And Osteopathic Physicians')
+    } 
+    if(input$group_to_map == 'group2'){
+      dat_interim = npidata_zip |> 
+        dplyr::filter(Grouping == 'Behavioral Health And Social Service Providers')
+    }
+    
+    dat_interim |> 
       dplyr::filter(state == input$state_chosen,
                     county == input$county_chosen) |> 
       dplyr::group_by(shortzip) |> 
@@ -629,19 +641,37 @@ server <- function(input, output, session) {
       }
       
       # Add in providers by their zip code as pins
-      if(input$county_chosen != 'All'){
+      if(input$county_chosen != 'All' & input$group_to_map != 'ratio'){
+        
+        # table_for_dots = leafpop::popupTable(
+        #   data.frame(
+        #     `Zipcode` = providers_in_county()$shortzip,
+        #     `Number of Providers` = providers_in_county()$number_providers,
+        #     `Group` = input$group_to_map
+        #   )
+        # )
+        
         m = m |> 
           clearGroup('provider_pins') |> 
           addCircleMarkers(
-            label = ~paste0("Zipcode ",shortzip,": ",number_providers),
+            label = ~paste0("Zipcode ",shortzip,": ",number_providers,
+                            ifelse(number_providers > 1, ' providers', ' provider'),
+                            ' (',ifelse(input$group_to_map == 'group1',
+                                        'Group 1',
+                                        'Group 2'),
+                            ')'),
+            # label = ~lapply(table_for_dots,
+                            # htmltools::HTML),
             # color = ~colorBin('Spectral',
             #                   providers_in_county()$number_providers,
             #                   3)(number_providers),
             # fillColor = ~colorBin('Spectral',
             #                       providers_in_county()$number_providers,
             #                       3)(number_providers),
-            color = 'darkred',
-            fillColor = 'darkred',
+            # color = 'darkred',
+            # fillColor = 'darkred',
+            color = 'white',
+            fillColor = 'white',
             fillOpacity = 0.5,
             radius = ~case_when(
               number_providers <= max(number_providers)*.33 ~ 4,
