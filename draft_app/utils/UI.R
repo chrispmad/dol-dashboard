@@ -7,6 +7,7 @@ Sys.setenv(OPENSSL_CONF="/dev/null")
 library(shiny)
 library(shinyWidgets)
 # library(shinyalert)
+library(shinymanager)
 library(sf)
 library(tidyverse)
 library(bslib)
@@ -16,6 +17,14 @@ library(mapview)
 # library(shinyjs)
 library(shinyFeedback)
 library(readxl)
+
+# Acceptable log-in credentials.
+credentials <- data.frame(
+  user = c('user1'),
+  password = scrypt::hashPassword('healthstats'),
+  is_hashed_password = TRUE,
+  stringsAsFactors = FALSE
+)
 
 # Excel file for Group 1 bundles.
 group_bundles = read_excel('www/Grouping-Specialties.xlsx')
@@ -166,10 +175,11 @@ main_bit = div(
 # .label.control-label, .selectize-control.single{ display: table-cell; text-align: 
 #     left; vertical-align: middle; } 
 # .form-group{ display: table-row;}
-app_ui = page_fillable(
-  shinyFeedback::useShinyFeedback(),
-  
-  tags$style(HTML("
+app_ui = secure_app(#head_auth = tags$script(inactivity),
+  page_fillable(
+    shinyFeedback::useShinyFeedback(),
+    
+    tags$style(HTML("
 
 .selectize-input {background-color:#48DAC6 !important; }
 .shiny-input-container {height: 70px;}
@@ -177,11 +187,12 @@ app_ui = page_fillable(
 .leaflet-interactive[stroke='#e03'] {
                   display: none;
                   }")),
-  
-  theme = my_theme,
-  title = 'Healthcare Provider Search Tool',
-  layout_sidebar(
-    sidebar = the_sidebar,
-    main_bit
+    
+    theme = my_theme,
+    title = 'Healthcare Provider Search Tool',
+    layout_sidebar(
+      sidebar = the_sidebar,
+      main_bit
+    )
   )
 )

@@ -1,4 +1,16 @@
 # ===================================================
+# Clean NPI data on data read
+
+sum_npi = function(dat){
+  dat |> 
+    dplyr::rename(shape_name = county) |> 
+    dplyr::group_by(state,shape_name,Grouping,Classification) |> 
+    dplyr::summarise(n = sum(n,na.rm=T),
+                     number_in_bcbs_network = sum(number_in_bcbs_network,na.rm=T)) |> 
+    dplyr::ungroup()
+}
+
+# ===================================================
 # Clean names of Group 2 classification and 
 # pull them out as a vector.
 get_clean_values = function(dat){
